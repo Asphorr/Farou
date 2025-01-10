@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modrinth Advanced Search</title>
+    <style>
+        :root {
+            --primary-color: #00a8e8;
+            --secondary-color: #003459;
+            --background-color: #f8f9fa;
+            --card-color: #ffffff;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --accent-color: #00ff9d;
+            --error-color: #ff7675;
+            --success-color: #00b894;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #00b4d8;
+            --secondary-color: #090c10;
+            --background-color: #0d1117;
+            --card-color: #161b22;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --accent-color: #00ff9d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: var(--card-color);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1.5rem;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--shadow-color);
+        }
+
+        .search-container {
+            background-color: var(--card-color);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .search-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px var(--shadow-color);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid var(--shadow-color);
+            border-radius: 10px;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.2);
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--shadow-color);
+            border-radius: 10px;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 168, 232, 0.2);
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .mod-card {
+            background-color: var(--card-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mod-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px var(--shadow-color);
+        }
+
+        .mod-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .mod-card:hover .mod-image {
+            transform: scale(1.05);
+        }
+
+        .mod-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .mod-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .category-tag {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+        }
+
+        .category-tag:hover {
+            transform: scale(1.05);
+        }
+
+        .mod-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-top: 1px solid var(--shadow-color);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .quality-indicators {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quality-indicator {
+            background-color: var(--background-color);
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+        }
+
+        .loader::after {
+            content: "";
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--primary-color);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--error-color);
+            background-color: var(--card-color);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .gem-score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: var(--accent-color);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination-button {
+            padding: 8px 16px;
+            border: none;
+            background-color: var(--card-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
+
+        .pagination-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-color);
+        }
+
+        .pagination-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pagination-info {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .filters {
+                grid-template-columns: 1fr;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Modrinth Advanced Search</h1>
+            <button class="theme-toggle" aria-label="Toggle theme">🌓</button>
+        </header>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" placeholder="Search mods, plugins, datapacks...">
+            <div class="filters">
+                <select id="sortBy">
+                    <option value="smart">🧠 Smart Ranking</option>
+                    <option value="relevance">🎯 Relevance</option>
+                    <option value="downloads">⬇️ Downloads</option>
+                    <option value="follows">⭐ Follows</option>
+                    <option value="newest">🆕 Newest</option>
+                    <option value="updated">🔄 Recently Updated</option>
+                </select>
+                <select id="projectType">
+                    <option value="mod">🧊 Mods</option>
+                    <option value="plugin">🔌 Plugins</option>
+                    <option value="datapack">📦 Datapacks</option>
+                    <option value="shader">🎨 Shaders</option>
+                </select>
+                <select id="gameVersion">
+                    <option value="">All Versions</option>
+                    <optgroup label="Latest">
+                        <option value="1.21.4">1.21.4</option>
+                        <option value="1.21.3">1.21.3</option>
+                        <option value="1.21.2">1.21.2</option>
+                        <option value="1.21.1">1.21.1</option>
+                        <option value="1.21">1.21</option>
+                        <option value="1.20.4">1.20.4</option>
+                        <option value="1.20.3">1.20.3</option>
+                        <option value="1.20.2">1.20.2</option>
+                        <option value="1.20.1">1.20.1</option>
+                        <option value="1.20">1.20</option>
+                    </optgroup>
+                    <optgroup label="Popular">
+                        <option value="1.19.4">1.19.4</option>
+                        <option value="1.19.2">1.19.2</option>
+                        <option value="1.18.2">1.18.2</option>
+                        <option value="1.17.1">1.17.1</option>
+                        <option value="1.16.5">1.16.5</option>
+                        <option value="1.12.2">1.12.2</option>
+                        <option value="1.8.9">1.8.9</option>
+                    </optgroup>
+                    <optgroup label="Legacy">
+                        <option value="1.19.3">1.19.3</option>
+                        <option value="1.19.1">1.19.1</option>
+                        <option value="1.19">1.19</option>
+                        <option value="1.18.1">1.18.1</option>
+                        <option value="1.18">1.18</option>
+                        <option value="1.17">1.17</option>
+                        <option value="1.16.4">1.16.4</option>
+                        <option value="1.16.3">1.16.3</option>
+                        <option value="1.16.2">1.16.2</option>
+                        <option value="1.16.1">1.16.1</option>
+                        <option value="1.16">1.16</option>
+                        <option value="1.15.2">1.15.2</option>
+                        <option value="1.15.1">1.15.1</option>
+                        <option value="1.15">1.15</option>
+                        <option value="1.14.4">1.14.4</option>
+                        <option value="1.14.3">1.14.3</option>
+                        <option value="1.14.2">1.14.2</option>
+                        <option value="1.14.1">1.14.1</option>
+                        <option value="1.14">1.14</option>
+                        <option value="1.13.2">1.13.2</option>
+                        <option value="1.13.1">1.13.1</option>
+                        <option value="1.13">1.13</option>
+                        <option value="1.12.1">1.12.1</option>
+                        <option value="1.12">1.12</option>
+                        <option value="1.11.2">1.11.2</option>
+                        <option value="1.11.1">1.11.1</option>
+                        <option value="1.11">1.11</option>
+                        <option value="1.10.2">1.10.2</option>
+                        <option value="1.10.1">1.10.1</option>
+                        <option value="1.10">1.10</option>
+                        <option value="1.9.4">1.9.4</option>
+                        <option value="1.9.3">1.9.3</option>
+                        <option value="1.9.2">1.9.2</option>
+                        <option value="1.9.1">1.9.1</option>
+                        <option value="1.9">1.9</option>
+                        <option value="1.8.8">1.8.8</option>
+                        <option value="1.8.7">1.8.7</option>
+                        <option value="1.8.6">1.8.6</option>
+                        <option value="1.8.5">1.8.5</option>
+                        <option value="1.8.4">1.8.4</option>
+                        <option value="1.8.3">1.8.3</option>
+                        <option value="1.8.2">1.8.2</option>
+                        <option value="1.8.1">1.8.1</option>
+                        <option value="1.8">1.8</option>
+                        <option value="1.7.10">1.7.10</option>
+                        <option value="1.7.9">1.7.9</option>
+                        <option value="1.7.8">1.7.8</option>
+                        <option value="1.7.7">1.7.7</option>
+                        <option value="1.7.6">1.7.6</option>
+                        <option value="1.7.5">1.7.5</option>
+                        <option value="1.7.4">1.7.4</option>
+                        <option value="1.7.3">1.7.3</option>
+                        <option value="1.7.2">1.7.2</option>
+                        <option value="1.6.4">1.6.4</option>
+                        <option value="1.6.2">1.6.2</option>
+                        <option value="1.6.1">1.6.1</option>
+                        <option value="1.5.2">1.5.2</option>
+                        <option value="1.5.1">1.5.1</option>
+                        <option value="1.5">1.5</option>
+                        <option value="1.4.7">1.4.7</option>
+                        <option value="1.4.6">1.4.6</option>
+                        <option value="1.4.5">1.4.5</option>
+                        <option value="1.4.4">1.4.4</option>
+                        <option value="1.4.2">1.4.2</option>
+                        <option value="1.3.2">1.3.2</option>
+                        <option value="1.3.1">1.3.1</option>
+                        <option value="1.2.5">1.2.5</option>
+                        <option value="1.2.4">1.2.4</option>
+                        <option value="1.2.3">1.2.3</option>
+                        <option value="1.2.2">1.2.2</option>
+                        <option value="1.2.1">1.2.1</option>
+                        <option value="1.1">1.1</option>
+                        <option value="1.0">1.0</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="search-stats"></div>
+        </div>
+
+        <div class="loader"></div>
+        <div class="error-message"></div>
+        <div class="results"></div>
+        <div class="pagination-info"></div>
+        <div class="pagination"></div>
+    </div>
+
+    <script>
+// Cache Management System
+        class ModCache {
+            constructor() {
+                this.cache = new Map();
+                this.scoreCache = new Map();
+                this.statsCache = {
+                    avgDownloads: null,
+                    avgFollows: null,
+                    timestamp: null
+                };
+                this.lastCleanup = Date.now();
+            }
+
+            getModScore(mod, context) {
+                const cacheKey = `${mod.id}_${context.sortBy}_${context.gameVersion}`;
+                return this.scoreCache.get(cacheKey) || null;
+            }
+
+            setModScore(mod, context, score) {
+                const cacheKey = `${mod.id}_${context.sortBy}_${context.gameVersion}`;
+                this.scoreCache.set(cacheKey, score);
+            }
+
+            getStats(mods) {
+                const now = Date.now();
+                if (this.statsCache.timestamp && (now - this.statsCache.timestamp < 60000)) {
+                    return this.statsCache;
+                }
+
+                const stats = mods.reduce((acc, mod) => {
+                    acc.totalDownloads += mod.downloads;
+                    acc.totalFollows += mod.follows;
+                    return acc;
+                }, { totalDownloads: 0, totalFollows: 0 });
+
+                this.statsCache = {
+                    avgDownloads: stats.totalDownloads / mods.length,
+                    avgFollows: stats.totalFollows / mods.length,
+                    timestamp: now
+                };
+
+                return this.statsCache;
+            }
+
+            cleanup() {
+                const now = Date.now();
+                if (now - this.lastCleanup > 300000) {
+                    this.scoreCache.clear();
+                    this.statsCache = {
+                        avgDownloads: null,
+                        avgFollows: null,
+                        timestamp: null
+                    };
+                    this.lastCleanup = now;
+                }
+            }
+        }
+
+        // Search Controller
+        class SearchController {
+            constructor() {
+                this.currentController = null;
+                this.modCache = new ModCache();
+                this.lastSearchTerm = '';
+                this.debounceTimeout = null;
+                this.isLoading = false;
+            }
+
+            abort() {
+                if (this.currentController) {
+                    this.currentController.abort();
+                    this.currentController = null;
+                }
+            }
+
+            async search(params) {
+                this.abort();
+                this.currentController = new AbortController();
+
+                try {
+                    const response = await fetch(
+                        `https://api.modrinth.com/v2/search?${params}`,
+                        { signal: this.currentController.signal }
+                    );
+                    return await response.json();
+                } catch (error) {
+                    if (error.name === 'AbortError') return null;
+                    throw error;
+                }
+            }
+        }
+
+        // Pagination Manager
+        class PaginationManager {
+            constructor() {
+                this.currentPage = 1;
+                this.totalPages = 1;
+                this.itemsPerPage = 20;
+                this.totalItems = 0;
+            }
+
+            updatePagination(totalItems) {
+                this.totalItems = totalItems;
+                this.totalPages = Math.ceil(totalItems / this.itemsPerPage);
+                this.renderPagination();
+                this.updateInfo();
+            }
+
+            renderPagination() {
+                const paginationContainer = document.querySelector('.pagination');
+                const maxVisiblePages = 5;
+                paginationContainer.innerHTML = '';
+
+                // Previous button
+                const prevButton = this.createPaginationButton('←', this.currentPage > 1);
+                prevButton.addEventListener('click', () => this.goToPage(this.currentPage - 1));
+                paginationContainer.appendChild(prevButton);
+
+                // Calculate visible page range
+                let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
+
+                if (endPage - startPage + 1 < maxVisiblePages) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+
+                // First page
+                if (startPage > 1) {
+                    paginationContainer.appendChild(this.createPaginationButton('1', true, 1));
+                    if (startPage > 2) {
+                        paginationContainer.appendChild(this.createPaginationButton('...', false));
+                    }
+                }
+
+                // Page numbers
+                for (let i = startPage; i <= endPage; i++) {
+                    const button = this.createPaginationButton(i.toString(), true, i);
+                    if (i === this.currentPage) button.classList.add('active');
+                    paginationContainer.appendChild(button);
+                }
+
+                // Last page
+                if (endPage < this.totalPages) {
+                    if (endPage < this.totalPages - 1) {
+                        paginationContainer.appendChild(this.createPaginationButton('...', false));
+                    }
+                    paginationContainer.appendChild(this.createPaginationButton(
+                        this.totalPages.toString(), true, this.totalPages
+                    ));
+                }
+
+                // Next button
+                const nextButton = this.createPaginationButton('→', this.currentPage < this.totalPages);
+                nextButton.addEventListener('click', () => this.goToPage(this.currentPage + 1));
+                paginationContainer.appendChild(nextButton);
+            }
+
+            createPaginationButton(text, enabled, pageNum) {
+                const button = document.createElement('button');
+                button.className = 'pagination-button';
+                button.textContent = text;
+                if (!enabled) {
+                    button.disabled = true;
+                } else if (pageNum) {
+                    button.addEventListener('click', () => this.goToPage(pageNum));
+                }
+                return button;
+            }
+
+            updateInfo() {
+                const infoContainer = document.querySelector('.pagination-info');
+                const start = (this.currentPage - 1) * this.itemsPerPage + 1;
+                const end = Math.min(this.currentPage * this.itemsPerPage, this.totalItems);
+                infoContainer.textContent = `Showing ${start}-${end} of ${this.totalItems} results`;
+            }
+
+            async goToPage(page) {
+                if (page === this.currentPage || page < 1 || page > this.totalPages) return;
+                this.currentPage = page;
+                await performSearch(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Theme Manager
+        class ThemeManager {
+            constructor() {
+                this.theme = localStorage.getItem('theme') || 'light';
+                this.init();
+            }
+
+            init() {
+                document.documentElement.setAttribute('data-theme', this.theme);
+                document.querySelector('.theme-toggle').addEventListener('click', () => this.toggle());
+            }
+
+            toggle() {
+                this.theme = this.theme === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', this.theme);
+                localStorage.setItem('theme', this.theme);
+            }
+        }
+
+        // Initialize core components
+        const searchController = new SearchController();
+        const paginationManager = new PaginationManager();
+        const themeManager = new ThemeManager();
+
+        // DOM Elements
+        const searchBox = document.querySelector('.search-box');
+        const resultsContainer = document.querySelector('.results');
+        const loader = document.querySelector('.loader');
+        const errorMessage = document.querySelector('.error-message');
+        const sortSelect = document.getElementById('sortBy');
+        const projectTypeSelect = document.getElementById('projectType');
+        const gameVersionSelect = document.getElementById('gameVersion');
+        const searchStats = document.querySelector('.search-stats');
+
+// Mod Analysis and Smart Sorting
+        class ModAnalyzer {
+            constructor(modCache) {
+                this.modCache = modCache;
+                this.context = {
+                    sortBy: 'smart',
+                    gameVersion: ''
+                };
+            }
+
+            async analyzeMods(mods) {
+                const stats = this.modCache.getStats(mods);
+                return mods.map(mod => {
+                    const cachedScore = this.modCache.getModScore(mod, this.context);
+                    if (cachedScore !== null) {
+                        return { ...mod, score: cachedScore };
+                    }
+
+                    const score = this.calculateComplexScore(mod, stats);
+                    this.modCache.setModScore(mod, this.context, score);
+                    return { ...mod, score };
+                }).sort((a, b) => b.score.total - a.score.total);
+            }
+
+            calculateComplexScore(mod, stats) {
+                const baseMetrics = this.calculateBaseMetrics(mod, stats);
+                const qualityScore = this.calculateQualityScore(mod);
+                const trendScore = this.calculateTrendScore(mod);
+                const versionScore = this.calculateVersionScore(mod);
+                const communityScore = this.calculateCommunityScore(mod);
+
+                const total = (
+                    baseMetrics.total * 0.3 +
+                    qualityScore * 0.2 +
+                    trendScore * 0.2 +
+                    versionScore * 0.15 +
+                    communityScore * 0.15
+                );
+
+                return {
+                    total,
+                    details: { baseMetrics, qualityScore, trendScore, versionScore, communityScore }
+                };
+            }
+
+            calculateBaseMetrics(mod, stats) {
+                const downloadScore = mod.downloads / stats.avgDownloads;
+                const followScore = mod.follows / stats.avgFollows;
+                const gemFactor = (mod.follows / (mod.downloads + 1)) * 1000;
+
+                return {
+                    total: (downloadScore * 0.4 + followScore * 0.4 + gemFactor * 0.2),
+                    downloads: downloadScore,
+                    follows: followScore,
+                    gemFactor
+                };
+            }
+
+            calculateQualityScore(mod) {
+                let score = 0;
+                if (mod.description?.length > 100) score += 0.2;
+                if (mod.body?.length > 500) score += 0.2;
+                if (mod.issues_url) score += 0.15;
+                if (mod.wiki_url) score += 0.15;
+                if (mod.discord_url) score += 0.1;
+                if (mod.source_url) score += 0.2;
+                if (mod.donation_urls?.length > 0) score += 0.1;
+                
+                const versionCount = mod.versions?.length || 0;
+                score += Math.min(0.2, versionCount / 20);
+
+                return score;
+            }
+
+            calculateTrendScore(mod) {
+                const now = Date.now();
+                const age = (now - new Date(mod.date_published).getTime()) / (1000 * 60 * 60 * 24);
+                const daysSinceUpdate = (now - new Date(mod.date_modified).getTime()) / (1000 * 60 * 60 * 24);
+
+                const dailyDownloads = mod.downloads / Math.max(age, 1);
+                const dailyFollows = mod.follows / Math.max(age, 1);
+                const recentActivityBonus = Math.max(0, 1 - (daysSinceUpdate / 30));
+
+                return (
+                    Math.log10(dailyDownloads + 1) * 0.4 +
+                    Math.log10(dailyFollows + 1) * 0.4 +
+                    recentActivityBonus * 0.2
+                );
+            }
+
+            calculateVersionScore(mod) {
+                const versions = mod.game_versions || [];
+                const versionSpread = this.calculateVersionSpread(versions);
+                const versionCount = versions.length;
+                const versionMaintenance = this.calculateVersionMaintenance(mod);
+
+                return (
+                    versionSpread * 0.4 +
+                    Math.min(1, versionCount / 20) * 0.3 +
+                    versionMaintenance * 0.3
+                );
+            }
+
+            calculateVersionSpread(versions) {
+                if (!versions.length) return 0;
+                
+                const numericVersions = versions
+                    .map(v => {
+                        const match = v.match(/^1\.(\d+)/);
+                        return match ? parseInt(match[1]) : null;
+                    })
+                    .filter(v => v !== null);
+
+                if (!numericVersions.length) return 0;
+
+                const min = Math.min(...numericVersions);
+                const max = Math.max(...numericVersions);
+                const spread = max - min + 1;
+                const coverage = new Set(numericVersions).size / spread;
+                
+                return Math.min(1, coverage * (spread / 10));
+            }
+
+            calculateVersionMaintenance(mod) {
+                const updates = mod.versions?.length || 0;
+                const age = (Date.now() - new Date(mod.date_published).getTime()) / (1000 * 60 * 60 * 24);
+                return Math.min(1, updates / (age / 30 + 1));
+            }
+
+            calculateCommunityScore(mod) {
+                const engagementRatio = mod.follows / (mod.downloads + 1);
+                const communityPresence = [
+                    mod.discord_url,
+                    mod.wiki_url,
+                    mod.issues_url,
+                    mod.source_url
+                ].filter(Boolean).length / 4;
+
+                return (engagementRatio * 0.6 + communityPresence * 0.4);
+            }
+        }
+
+        // Core Search Function
+        async function performSearch(isPageChange = false) {
+            if (searchController.isLoading) return;
+            searchController.isLoading = true;
+            
+            const searchTerm = searchBox.value.trim();
+            const sortBy = sortSelect.value;
+            const projectType = projectTypeSelect.value;
+            const gameVersion = gameVersionSelect.value;
+
+            if (!isPageChange && searchTerm === searchController.lastSearchTerm) {
+                searchController.isLoading = false;
+                return;
+            }
+
+            if (!isPageChange) {
+                paginationManager.currentPage = 1;
+                searchController.lastSearchTerm = searchTerm;
+            }
+
+            resultsContainer.innerHTML = '';
+            loader.style.display = 'block';
+            errorMessage.style.display = 'none';
+
+            try {
+                const facets = [
+                    [`project_type:${projectType}`]
+                ];
+                if (gameVersion) {
+                    facets.push([`versions:${gameVersion}`]);
+                }
+
+                const params = new URLSearchParams({
+                    query: searchTerm,
+                    limit: paginationManager.itemsPerPage,
+                    offset: (paginationManager.currentPage - 1) * paginationManager.itemsPerPage,
+                    facets: JSON.stringify(facets),
+                    index: sortBy === 'smart' ? 'relevance' : sortBy
+                });
+
+                const data = await searchController.search(params);
+                
+                if (!data || data.hits.length === 0) {
+                    errorMessage.textContent = 'No results found';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+
+                let results = data.hits;
+                if (sortBy === 'smart') {
+                    const analyzer = new ModAnalyzer(searchController.modCache);
+                    analyzer.context = { sortBy, gameVersion };
+                    results = await analyzer.analyzeMods(results);
+                }
+
+                displayResults(results);
+                paginationManager.updatePagination(data.total_hits);
+
+            } catch (error) {
+                errorMessage.textContent = 'Error fetching results';
+                errorMessage.style.display = 'block';
+                console.error('Search error:', error);
+            } finally {
+                loader.style.display = 'none';
+                searchController.isLoading = false;
+            }
+        }
+
+        // Results Display
+        function displayResults(mods) {
+            mods.forEach(mod => {
+                const modCard = document.createElement('div');
+                modCard.className = 'mod-card';
+
+                const imageUrl = mod.icon_url || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill="%23ccc" d="M21 16V4H3v12h18m0-14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7v2h2v2H8v-2h2v-2H3a2 2 0 0 1-2-2V4c0-1.11.89-2 2-2h18M5 6h14v8H5V6z"/%3E%3C/svg%3E';
+                const followRatio = ((mod.follows / (mod.downloads + 1)) * 1000).toFixed(2);
+                
+                const qualityIndicators = [];
+                if (mod.source_url) qualityIndicators.push('📎 Source');
+                if (mod.wiki_url) qualityIndicators.push('📚 Wiki');
+                if (mod.discord_url) qualityIndicators.push('💬 Discord');
+                if (mod.issues_url) qualityIndicators.push('🐛 Issues');
+
+                modCard.innerHTML = `
+                    ${sortSelect.value === 'smart' ? 
+                        `<div class="gem-score" title="Quality Score">💎 ${followRatio}</div>` : ''}
+                    <img src="${imageUrl}" alt="${mod.title}" class="mod-image" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ccc\' d=\'M21 16V4H3v12h18m0-14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7v2h2v2H8v-2h2v-2H3a2 2 0 0 1-2-2V4c0-1.11.89-2 2-2h18M5 6h14v8H5V6z\'/%3E%3C/svg%3E'">
+                    <div class="mod-title">${mod.title}</div>
+                    <div class="mod-description">${mod.description}</div>
+                    <div class="categories">
+                        ${mod.categories.map(category => 
+                            `<span class="category-tag">${category}</span>`
+                        ).join('')}
+                    </div>
+                    <div class="mod-stats">
+                        <span class="stat-item">👥 ${formatNumber(mod.downloads)}</span>
+                        <span class="stat-item">⭐ ${formatNumber(mod.follows)}</span>
+                        <span class="stat-item">🔄 ${formatDate(mod.date_modified)}</span>
+                    </div>
+                    ${qualityIndicators.length ? `
+                        <div class="quality-indicators">
+                            ${qualityIndicators.map(indicator => 
+                                `<span class="quality-indicator">${indicator}</span>`
+                            ).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="version-list">
+                        ${mod.versions?.length ? `${mod.versions.length} version${mod.versions.length > 1 ? 's' : ''}` : 'No versions'}
+                    </div>`;
+
+                modCard.addEventListener('click', () => {
+                    window.open(`https://modrinth.com/${mod.project_type}/${mod.slug}`, '_blank');
+                });
+
+                resultsContainer.appendChild(modCard);
+            });
+        }
+
+        // Utility Functions
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (days < 1) return 'Today';
+            if (days < 2) return 'Yesterday';
+            if (days < 7) return `${days} days ago`;
+            if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+            if (days < 365) return `${Math.floor(days / 30)} months ago`;
+            return `${Math.floor(days / 365)} years ago`;
+        }
+
+        // Event Listeners
+        searchBox.addEventListener('input', () => {
+            clearTimeout(searchController.debounceTimeout);
+            searchController.debounceTimeout = setTimeout(performSearch, 300);
+        });
+
+        sortSelect.addEventListener('change', performSearch);
+        projectTypeSelect.addEventListener('change', performSearch);
+        gameVersionSelect.addEventListener('change', performSearch);
+
+        // Memory Management
+        setInterval(() => {
+            searchController.modCache.cleanup();
+        }, 300000);
+
+        // Initial Search
+        performSearch();
+    </script>
+</body>
+</html>
